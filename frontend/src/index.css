@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  /* Branding Colors */
+  --color-brand-primary: #0f172a;  /* Ein sehr dunkles, edles Slate-Blau (Slate-900) */
+  --color-brand-dark: #020617;     /* Fast Schwarz für Kontraste (Slate-950) */
+  --color-brand-accent: #10b981;   /* Ein frisches, modernes Smaragd-Grün (Emerald-500) */
+  --color-brand-accent-hover: #059669; /* Dunkleres Grün für Hover */
+
+  /* UI Defaults */
+  --font-sans: "Inter", "Plus Jakarta Sans", system-ui, sans-serif;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* Globale Styles für Smoothness */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}

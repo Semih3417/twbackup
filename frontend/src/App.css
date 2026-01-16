@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  /* Hier kannst du deine Markenfarben für "Tauschwagen" definieren */
+  --color-brand-primary: #2563eb;
+  --color-brand-secondary: #1e293b;
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+}
+
+/* Deine globalen Styles */
+body {
+  @apply bg-slate-50 text-slate-900;
+}
