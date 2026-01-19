@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// --- LOGIN FUNKTION (AKTUALISIERT) ---
+// --- LOGIN FUNKTION (AKTUALISIERT MIT SPERRE) ---
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -40,22 +40,31 @@ exports.login = async (req, res) => {
 
     const user = users[0];
 
+    // --- NEU: LOGIN-SPERRE PRÜFEN ---
+    // Wir prüfen hier, ob der Nutzer gesperrt ist, noch bevor wir das Passwort abgleichen.
+    if (user.role === 'banned') {
+      return res.status(403).json({ 
+        message: 'Dein Account wurde gesperrt. Bitte kontaktiere den Support.' 
+      });
+    }
+    // --------------------------------
+
     // 2. Passwort prüfen
     const validPass = await bcrypt.compare(password, user.password_hash);
-    if (!validPass) return res.status(400).json({ message: 'E-Mail oder Passwort falsch.' });
+    if (!validPass) return res.status(401).json({ message: 'E-Mail oder Passwort falsch.' });
 
-    // 3. UPDATE: Token erstellen - JETZT MIT ROLE & 24h Laufzeit
+    // 3. Token erstellen - MIT ROLE & 24h Laufzeit
     const token = jwt.sign(
       { 
         id: user.user_id, 
         email: user.email, 
-        role: user.role // <--- Rolle im Token gespeichert
+        role: user.role 
       },
       SECRET_KEY, 
       { expiresIn: '24h' }
     );
 
-    // 4. Response mit Token und erweiterten User-Infos
+    // 4. Response mit Token und User-Infos
     res.json({ 
       token, 
       user: { 
@@ -63,7 +72,7 @@ exports.login = async (req, res) => {
         first_name: user.first_name, 
         last_name: user.last_name,
         email: user.email,
-        role: user.role // <--- Rolle im JSON zurückgegeben
+        role: user.role
       } 
     });
   } catch (err) {

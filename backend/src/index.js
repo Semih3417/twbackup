@@ -14,21 +14,22 @@ const messageController = require('./controllers/messageController');
 const favoriteController = require('./controllers/favoriteController');
 const userController = require('./controllers/userController');
 const adminController = require('./controllers/adminController');
-const requireAdmin = require('./middleware/adminMiddleware'); // Unser neuer Türsteher
+const magazineController = require('./controllers/magazineController'); // NEU hinzugefügt
+const requireAdmin = require('./middleware/adminMiddleware'); 
 
 // --- MIDDLEWARE IMPORTS ---
 const authenticateToken = require('./middleware/authMiddleware');
-const upload = require('./middleware/uploadMiddleware'); // Neu hinzugefügt
+const upload = require('./middleware/uploadMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // === GLOBAL MIDDLEWARE ===
-app.use(cors()); // Erlaubt Zugriff vom Frontend
-app.use(express.json()); // Erlaubt JSON-Body in Requests
-app.use(morgan('dev')); // Logging in der Konsole
+app.use(cors()); 
+app.use(express.json()); 
+app.use(morgan('dev')); 
 
-// WICHTIG: Den Uploads Ordner öffentlich verfügbar machen
+// Uploads Ordner öffentlich verfügbar machen
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // === ROUTES ===
@@ -44,22 +45,15 @@ app.post('/api/auth/login', authController.login);
 
 
 // --- FAHRZEUGE (VEHICLES) ---
-
-// A. Hilfsdaten & Listen (Öffentlich)
 app.get('/api/form-data', vehicleController.getFormData); 
 app.get('/api/models/:id', vehicleController.getModelsByManufacturer); 
-
-// B. Suche & Details (Öffentlich)
 app.get('/api/vehicles', vehicleController.getVehicles); 
 app.get('/api/vehicles/:id', vehicleController.getVehicleById); 
 app.get('/api/vehicles/:id/related', vehicleController.getRelatedVehicles); 
 
-// C. Verwaltung (Geschützt)
 app.post('/api/vehicles', authenticateToken, upload.array('gallery', 5), vehicleController.createVehicle); 
-// --- NEU: Update & Bild-Löschen Routen ---
 app.put('/api/vehicles/:id', authenticateToken, upload.array('gallery', 5), vehicleController.updateVehicle);
 app.delete('/api/vehicles/:id/images/:imageId', authenticateToken, vehicleController.deleteVehicleImage);
-// -----------------------------------------
 app.delete('/api/vehicles/:id', authenticateToken, vehicleController.deleteVehicle); 
 app.get('/api/my-vehicles', authenticateToken, vehicleController.getMyVehicles); 
 
@@ -80,9 +74,27 @@ app.get('/api/users/me', authenticateToken, userController.getMe);
 app.put('/api/users/profile', authenticateToken, userController.updateProfile);
 app.put('/api/users/password', authenticateToken, userController.changePassword);
 
+
+// --- MAGAZIN (ÖFFENTLICH) ---
+// Diese Routen sind für alle Besucher zugänglich
+app.get('/api/magazine', magazineController.getArticles);
+app.get('/api/magazine/read/:slug', magazineController.getArticleBySlug);
+
+
 // --- ADMIN BEREICH ---
-// Doppelt gesichert: Erst Token prüfen (authenticateToken), dann Rolle prüfen (requireAdmin)
+// Alle Routen hier sind durch authenticateToken UND requireAdmin doppelt gesichert
+
+// User & Statistik Management
 app.get('/api/admin/dashboard', authenticateToken, requireAdmin, adminController.getDashboardStats);
+app.get('/api/admin/users', authenticateToken, requireAdmin, adminController.getAllUsers);
+app.put('/api/admin/users/:id', authenticateToken, requireAdmin, adminController.updateUser);
+
+// Magazin Management (CRUD für Admin)
+app.post('/api/admin/articles', authenticateToken, requireAdmin, magazineController.createArticle);
+app.get('/api/admin/articles/:id', authenticateToken, requireAdmin, magazineController.getArticleById);
+app.put('/api/admin/articles/:id', authenticateToken, requireAdmin, magazineController.updateArticle);
+app.delete('/api/admin/articles/:id', authenticateToken, requireAdmin, magazineController.deleteArticle);
+
 
 // === SERVER START ===
 app.listen(PORT, () => {

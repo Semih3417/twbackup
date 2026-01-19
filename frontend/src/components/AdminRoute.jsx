@@ -5,7 +5,7 @@ export default function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // 1. Warten, bis Login geprüft wurde
+  // 1. Warten, bis der Login-Status geklärt ist (Lade-Spinner)
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
@@ -14,12 +14,12 @@ export default function AdminRoute({ children }) {
     );
   }
 
-  // 2. Prüfen: Ist User da? UND Ist er Admin?
+  // 2. Prüfung: Ist User da? UND Ist die Rolle 'admin'?
   if (!user || user.role !== 'admin') {
-    // Wenn nicht, schicken wir ihn zur Startseite oder Login
+    // Falls nein: Zurück zum Login (wir merken uns, wo er hinwollte)
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 3. Zugriff erlaubt
+  // 3. Zugriff erlaubt: Zeige die Admin-Seite
   return children;
 }
