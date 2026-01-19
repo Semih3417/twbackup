@@ -33,7 +33,7 @@ export default function Magazine() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
-      <main className="flex-grow">
+      <main className="grow">
         {/* Header */}
         <div className="bg-slate-900 py-20 px-6 text-center">
            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Das Tauschwagen Magazin</h1>
@@ -82,7 +82,7 @@ export default function Magazine() {
                 <h2 className="text-2xl font-bold mb-4">Nichts mehr verpassen?</h2>
                 <p className="text-slate-300 mb-6">Melde dich für unseren Newsletter an und erhalte die besten Tauschangebote der Woche.</p>
                 <div className="flex max-w-md mx-auto gap-2">
-                   <input type="email" placeholder="Deine E-Mail Adresse" className="flex-grow px-4 py-3 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-brand-accent" />
+                   <input type="email" placeholder="Deine E-Mail Adresse" className="grow py-3 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-brand-accent" />
                    <button className="bg-brand-accent text-brand-primary font-bold px-6 py-3 rounded-xl hover:bg-white transition">Anmelden</button>
                 </div>
               </div>

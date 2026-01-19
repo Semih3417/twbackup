@@ -38,7 +38,7 @@ export default function MyGarage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
-      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 py-12">
+      <main className="grow max-w-7xl mx-auto w-full px-4 sm:px-6 py-12">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
@@ -93,7 +93,7 @@ export default function MyGarage() {
                 </div>
 
                 {/* Content Bereich */}
-                <div className="p-5 flex-grow flex flex-col">
+                <div className="p-5 grow flex-col">
                   <div className="mb-4">
                     <div className="text-xs font-bold text-slate-400 uppercase mb-1">{vehicle.manufacturer}</div>
                     <h3 className="text-xl font-bold text-slate-800 truncate" title={vehicle.model}>{vehicle.model}</h3>

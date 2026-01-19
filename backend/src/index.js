@@ -13,6 +13,8 @@ const vehicleController = require('./controllers/vehicleController');
 const messageController = require('./controllers/messageController');
 const favoriteController = require('./controllers/favoriteController');
 const userController = require('./controllers/userController');
+const adminController = require('./controllers/adminController');
+const requireAdmin = require('./middleware/adminMiddleware'); // Unser neuer Türsteher
 
 // --- MIDDLEWARE IMPORTS ---
 const authenticateToken = require('./middleware/authMiddleware');
@@ -78,7 +80,9 @@ app.get('/api/users/me', authenticateToken, userController.getMe);
 app.put('/api/users/profile', authenticateToken, userController.updateProfile);
 app.put('/api/users/password', authenticateToken, userController.changePassword);
 
-
+// --- ADMIN BEREICH ---
+// Doppelt gesichert: Erst Token prüfen (authenticateToken), dann Rolle prüfen (requireAdmin)
+app.get('/api/admin/dashboard', authenticateToken, requireAdmin, adminController.getDashboardStats);
 
 // === SERVER START ===
 app.listen(PORT, () => {

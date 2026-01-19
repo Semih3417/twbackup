@@ -1,146 +1,174 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import client from '../api/client'; // Direkt Client nutzen, da Register meist nicht im Context ist
-import { useAuth } from '../context/AuthContext'; // Um direkt einzuloggen nach Register
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import client from '../api/client';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import { useAuth } from '../context/AuthContext';
 
-export default function Register() {
-  const { login } = useAuth(); // Wir nutzen die Login Funktion nach dem Register
-  const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    first_name: '', last_name: '', email: '', password: '', confirmPassword: ''
+export default function UserProfile() {
+  const { user, logout } = useAuth();
+  const [profile, setProfile] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: ''
   });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const [passwords, setPasswords] = useState({ oldPassword: '', newPassword: '' });
+  const [message, setMessage] = useState({ text: '', type: '' });
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Daten laden
+  useEffect(() => {
+    client.get('/users/me')
+      .then(res => setProfile(res.data))
+      .catch(err => console.error(err));
+  }, []);
 
-  const handleSubmit = async (e) => {
+  // Handler: Profil Update
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    setError('');
-
-    // Validierung Client-Side
-    if (formData.password !== formData.confirmPassword) {
-        return setError("Die Passwörter stimmen nicht überein.");
-    }
-    if (formData.password.length < 6) {
-        return setError("Das Passwort muss mindestens 6 Zeichen lang sein.");
-    }
-
-    setLoading(true);
-
+    setMessage({ text: '', type: '' });
     try {
-      // 1. Registrieren
-      await client.post('/auth/register', {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        password: formData.password
-      });
-
-      // 2. Automatisch Einloggen (UX!)
-      await login(formData.email, formData.password);
-      
-      // 3. Weiterleitung
-      navigate('/my-garage');
+      await client.put('/users/profile', profile);
+      setMessage({ text: 'Daten erfolgreich gespeichert!', type: 'success' });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registrierung fehlgeschlagen.');
-    } finally {
-      setLoading(false);
+      setMessage({ text: 'Fehler beim Speichern.', type: 'error' });
+    }
+  };
+
+  // Handler: Passwort Update
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setMessage({ text: '', type: '' });
+    try {
+      await client.put('/users/password', passwords);
+      setMessage({ text: 'Passwort geändert!', type: 'success' });
+      setPasswords({ oldPassword: '', newPassword: '' });
+    } catch (err) {
+      setMessage({ text: err.response?.data?.message || 'Fehler beim Ändern.', type: 'error' });
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      
-      {/* === LINKE SEITE (Bild) === */}
-      <div className="hidden lg:flex w-1/2 bg-brand-primary relative items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-             <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" alt="Car Keys" className="w-full h-full object-cover opacity-30 mix-blend-overlay" />
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <Navbar />
+
+      <main className="grow max-w-4xl mx-auto w-full px-6 py-12">
+        <h1 className="text-3xl font-bold text-brand-primary mb-8">Mein Profil</h1>
+
+        {message.text && (
+          <div className={`p-4 mb-6 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {message.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          {/* Linke Spalte: User Card */}
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center">
+              <div className="w-24 h-24 bg-brand-primary text-white text-3xl font-bold rounded-full flex items-center justify-center mx-auto mb-4">
+                {profile.first_name?.charAt(0)}
+              </div>
+              <h2 className="text-xl font-bold text-slate-800">{profile.first_name} {profile.last_name}</h2>
+              <p className="text-slate-500 text-sm mb-6">{profile.email}</p>
+              
+              <button 
+                onClick={logout}
+                className="w-full border border-red-200 text-red-600 hover:bg-red-50 font-bold py-2 rounded-lg transition"
+              >
+                Abmelden
+              </button>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-100">
+               <Link to="/my-garage" className="block w-full text-center bg-slate-50 hover:bg-slate-100 text-brand-primary font-bold py-2 rounded-lg transition mb-2">
+                 Meine Garage verwalten
+               </Link>
+               <Link to="/favorites" className="block w-full text-center bg-slate-50 hover:bg-slate-100 text-brand-primary font-bold py-2 rounded-lg transition">
+                 Meine Merkliste
+               </Link>
+            </div>
+          </div>
+
+          {/* Rechte Spalte: Formulare */}
+          <div className="md:col-span-2 space-y-8">
+            
+            {/* 1. Persönliche Daten */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-bold text-brand-primary mb-6">Persönliche Daten</h3>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-500 mb-1">Vorname</label>
+                    <input 
+                      className="w-full border p-2 rounded-lg"
+                      value={profile.first_name || ''}
+                      onChange={e => setProfile({...profile, first_name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-500 mb-1">Nachname</label>
+                    <input 
+                      className="w-full border p-2 rounded-lg"
+                      value={profile.last_name || ''}
+                      onChange={e => setProfile({...profile, last_name: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-slate-500 mb-1">Telefonnummer</label>
+                    <input 
+                      className="w-full border p-2 rounded-lg"
+                      value={profile.phone_number || ''}
+                      placeholder="+49 123 45678"
+                      onChange={e => setProfile({...profile, phone_number: e.target.value})}
+                    />
+                </div>
+                
+                <div className="pt-2 text-right">
+                  <button type="submit" className="bg-brand-primary text-white font-bold px-6 py-2 rounded-lg hover:bg-slate-800 transition">
+                    Speichern
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* 2. Sicherheit (Passwort) */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-bold text-brand-primary mb-6">Sicherheit</h3>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div>
+                   <label className="block text-sm font-bold text-slate-500 mb-1">Aktuelles Passwort</label>
+                   <input 
+                     type="password"
+                     className="w-full border p-2 rounded-lg"
+                     value={passwords.oldPassword}
+                     onChange={e => setPasswords({...passwords, oldPassword: e.target.value})}
+                   />
+                </div>
+                <div>
+                   <label className="block text-sm font-bold text-slate-500 mb-1">Neues Passwort</label>
+                   <input 
+                     type="password"
+                     className="w-full border p-2 rounded-lg"
+                     value={passwords.newPassword}
+                     onChange={e => setPasswords({...passwords, newPassword: e.target.value})}
+                   />
+                </div>
+                <div className="pt-2 text-right">
+                  <button type="submit" className="border border-slate-300 text-slate-700 font-bold px-6 py-2 rounded-lg hover:bg-slate-50 transition">
+                    Passwort ändern
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </div>
         </div>
-        <div className="relative z-10 p-12 text-white max-w-lg">
-           <h1 className="text-4xl font-bold mb-6">Starte deinen Tausch.</h1>
-           <ul className="space-y-4 text-lg text-slate-200">
-               <li className="flex items-center gap-3">✓ Kostenlos Inserieren</li>
-               <li className="flex items-center gap-3">✓ Verifizierte Nutzer</li>
-               <li className="flex items-center gap-3">✓ Sicherer Chat</li>
-           </ul>
-        </div>
-      </div>
+      </main>
 
-      {/* === RECHTE SEITE (Formular) === */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 overflow-y-auto">
-        <div className="w-full max-w-md">
-           
-           <div className="mb-8">
-             <Link to="/" className="text-2xl font-bold tracking-tighter block mb-2">
-                <span className="text-slate-900">tausch</span><span className="text-brand-accent">wagen</span>
-             </Link>
-             <h2 className="text-3xl font-bold text-slate-800">Konto erstellen</h2>
-             <p className="text-slate-500 mt-2">Dauert weniger als eine Minute.</p>
-           </div>
-
-           {error && (
-             <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 text-sm border border-red-100">
-               ⚠️ {error}
-             </div>
-           )}
-
-           <form onSubmit={handleSubmit} className="space-y-4">
-             
-             <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Vorname</label>
-                    <input type="text" name="first_name" required className="auth-input" placeholder="Max" value={formData.first_name} onChange={handleChange} />
-                 </div>
-                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Nachname</label>
-                    <input type="text" name="last_name" required className="auth-input" placeholder="Mustermann" value={formData.last_name} onChange={handleChange} />
-                 </div>
-             </div>
-
-             <div>
-               <label className="block text-sm font-bold text-slate-700 mb-1">E-Mail Adresse</label>
-               <input type="email" name="email" required className="auth-input" placeholder="deine@email.de" value={formData.email} onChange={handleChange} />
-             </div>
-
-             <div>
-               <label className="block text-sm font-bold text-slate-700 mb-1">Passwort</label>
-               <input type="password" name="password" required className="auth-input" placeholder="Mind. 6 Zeichen" value={formData.password} onChange={handleChange} />
-             </div>
-
-             <div>
-               <label className="block text-sm font-bold text-slate-700 mb-1">Passwort wiederholen</label>
-               <input type="password" name="confirmPassword" required className="auth-input" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} />
-             </div>
-
-             <div className="text-xs text-slate-500 pt-2">
-                 Mit der Registrierung stimmst du unseren <a href="#" className="underline">AGB</a> und der <a href="#" className="underline">Datenschutzerklärung</a> zu.
-             </div>
-
-             <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-brand-primary text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 transition shadow-lg shadow-brand-primary/20 disabled:opacity-70 mt-2"
-             >
-                {loading ? "Laden..." : "Kostenlos registrieren"}
-             </button>
-
-           </form>
-
-           <div className="mt-8 text-center text-sm text-slate-500">
-              Du hast schon ein Konto?{' '}
-              <Link to="/login" className="font-bold text-brand-primary hover:underline">
-                Hier anmelden
-              </Link>
-           </div>
-        </div>
-      </div>
-
-      <style>{`
-        .auth-input { width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; outline: none; transition: all 0.2s; }
-        .auth-input:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
-      `}</style>
+      <Footer />
     </div>
   );
 }

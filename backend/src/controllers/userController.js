@@ -4,14 +4,15 @@ const bcrypt = require('bcryptjs');
 // 1. Eigene Profildaten laden
 exports.getMe = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT user_id, email, first_name, last_name, phone_number, created_at FROM users WHERE user_id = ?', [req.user.id]);
-    if (rows.length === 0) return res.status(404).json({ message: 'User nicht gefunden' });
+    // WICHTIG: 'role' muss hier mit ausgewählt werden!
+    const [rows] = await pool.query('SELECT user_id, email, first_name, last_name, phone_number, role, created_at FROM users WHERE user_id = ?', [req.user.id]);
+    
+    if (rows.length === 0) return res.status(404).json({ message: "User nicht gefunden" });
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 // 2. Profildaten aktualisieren (Name, Telefon)
 exports.updateProfile = async (req, res) => {
   const { first_name, last_name, phone_number } = req.body;

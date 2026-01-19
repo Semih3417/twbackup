@@ -6,7 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AddVehicle from './pages/AddVehicle';
-import EditVehicle from './pages/EditVehicle'; // NEU hinzugefügt
+import EditVehicle from './pages/EditVehicle'; 
 import MyGarage from './pages/MyGarage';
 import Search from './pages/Search';
 import VehicleDetail from './pages/VehicleDetail';
@@ -15,8 +15,12 @@ import UserProfile from './pages/UserProfile';
 import Magazine from './pages/Magazine';
 import Chat from './pages/Chat';
 
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard'; // NEU
+
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute'; // NEU
 
 function App() {
   return (
@@ -24,7 +28,6 @@ function App() {
       <AuthProvider>
         <Routes>
           {/* === Öffentliche Routen === */}
-          
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -41,7 +44,7 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* NEU: Fahrzeug bearbeiten */}
+          {/* Fahrzeug bearbeiten */}
           <Route path="/vehicles/edit/:id" element={
             <ProtectedRoute>
               <EditVehicle />
@@ -54,7 +57,6 @@ function App() {
               <MyGarage />
             </ProtectedRoute>
           } />
-
 
           <Route path="/profile" element={
             <ProtectedRoute>
@@ -69,11 +71,17 @@ function App() {
           } />
           
           <Route path="/chat" element={
-              <ProtectedRoute>
+            <ProtectedRoute>
               <Chat />
             </ProtectedRoute>
-} />
-          
+          } />
+
+          {/* === Admin Routen === */}
+          <Route path="/admin" element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } />
 
         </Routes>
       </AuthProvider>

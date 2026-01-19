@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'super_secret_dev_key';
 
+// --- REGISTER FUNKTION ---
 exports.register = async (req, res) => {
   const { email, password, first_name, last_name } = req.body;
   
@@ -28,6 +29,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// --- LOGIN FUNKTION (AKTUALISIERT) ---
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -39,19 +41,31 @@ exports.login = async (req, res) => {
     const user = users[0];
 
     // 2. Passwort prüfen
-    // Hinweis: Für unsere Dummy-Daten (z.B. 'hash123') würde das hier fehlschlagen.
-    // Daher nutzen wir diesen Login nur für neu registrierte User oder updaten die DB.
     const validPass = await bcrypt.compare(password, user.password_hash);
-    if (!validPass) return res.status(401).json({ message: 'Ungültige Zugangsdaten' });
+    if (!validPass) return res.status(400).json({ message: 'E-Mail oder Passwort falsch.' });
 
-    // 3. Token erstellen
+    // 3. UPDATE: Token erstellen - JETZT MIT ROLE & 24h Laufzeit
     const token = jwt.sign(
-      { id: user.user_id, email: user.email, role: user.role }, 
+      { 
+        id: user.user_id, 
+        email: user.email, 
+        role: user.role // <--- Rolle im Token gespeichert
+      },
       SECRET_KEY, 
-      { expiresIn: '2h' }
+      { expiresIn: '24h' }
     );
 
-    res.json({ token, user: { id: user.user_id, name: user.first_name, email: user.email } });
+    // 4. Response mit Token und erweiterten User-Infos
+    res.json({ 
+      token, 
+      user: { 
+        id: user.user_id, 
+        first_name: user.first_name, 
+        last_name: user.last_name,
+        email: user.email,
+        role: user.role // <--- Rolle im JSON zurückgegeben
+      } 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -90,14 +90,14 @@ export default function Chat() {
     <div className="h-screen flex flex-col bg-white overflow-hidden">
       <Navbar />
 
-      <div className="flex flex-grow overflow-hidden max-w-7xl mx-auto w-full border-t border-slate-100">
+      <div className="flex grow overflow-hidden max-w-7xl mx-auto w-full border-t border-slate-100">
         
         {/* === LINKS: CHAT LISTE === */}
         <div className={`w-full md:w-1/3 border-r border-slate-100 flex flex-col bg-slate-50 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b border-slate-100 font-bold text-slate-700 bg-white">
             Nachrichten
           </div>
-          <div className="overflow-y-auto flex-grow">
+          <div className="overflow-y-auto grow">
             {loading ? (
                <div className="p-4 text-slate-400 text-sm">Lade Chats...</div>
             ) : conversations.length === 0 ? (
@@ -143,7 +143,7 @@ export default function Chat() {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50">
+              <div className="grow overflow-y-auto p-4 space-y-4 bg-slate-50">
                 {messages.length === 0 && <div className="text-center text-slate-400 text-sm mt-10">Schreib die erste Nachricht an {activeChat.first_name}! 👋</div>}
                 
                 {messages.map((m, i) => (
@@ -160,7 +160,7 @@ export default function Chat() {
               <div className="p-4 border-t border-slate-100 bg-white">
                 <form onSubmit={handleSend} className="flex gap-2">
                   <input 
-                    className="flex-grow border border-slate-200 rounded-full px-4 py-3 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition"
+                    className="grow border border-slate-200 rounded-full px-4 py-3 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition"
                     placeholder="Nachricht schreiben..."
                     value={input}
                     onChange={e => setInput(e.target.value)}
@@ -172,7 +172,7 @@ export default function Chat() {
               </div>
             </>
           ) : (
-            <div className="flex-grow flex flex-col items-center justify-center text-slate-300">
+            <div className="grow flex flex-col items-center justify-center text-slate-300">
                <div className="text-6xl mb-4 opacity-50">💬</div>
                <p>Wähle einen Chat aus der Liste.</p>
             </div>
