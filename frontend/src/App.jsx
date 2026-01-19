@@ -14,6 +14,7 @@ import Favorites from './pages/Favorites';
 import UserProfile from './pages/UserProfile';
 import Magazine from './pages/Magazine';
 import Chat from './pages/Chat';
+import ArticleDetail from './pages/ArticleDetail';
 
 // --- ADMIN SEITEN IMPORTS ---
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -82,6 +83,12 @@ function App() {
               <AdminArticleEditor />
             </AdminRoute>
           } />
+
+          <Route path="/magazine" element={<Magazine />} />
+            <Route path="/magazine/:slug" element={
+              <ArticleDetail />} /> {
+                
+              }
 
         </Routes>
       </AuthProvider>
