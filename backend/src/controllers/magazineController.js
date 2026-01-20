@@ -1,36 +1,58 @@
 const pool = require('../config/db');
 
-// Helper: Text in URL umwandeln (z.B. "Hallo Welt" -> "hallo-welt")
+// --- HELPER FUNKTIONEN ---
+
+/**
+ * Erstellt einen SEO-freundlichen Slug aus einem Titel.
+ * Berücksichtigt deutsche Umlaute und entfernt gängige Stoppwörter.
+ */
 const createSlug = (text) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss') // Deutsche Umlaute
-    .replace(/[\s\W-]+/g, '-') // Alles was kein Buchstabe ist wird Bindestrich
-    .replace(/^-+|-+$/g, ''); // Bindestriche am Anfang/Ende weg
+  const stopWords = ['und', 'oder', 'der', 'die', 'das', 'ein', 'eine', 'mit', 'fuer', 'von'];
+  let slug = text.toString().toLowerCase().trim()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[\s\W-]+/g, '-'); // Alles, was kein Buchstabe/Zahl ist, wird zu Bindestrich
+
+  // Stoppwörter entfernen
+  stopWords.forEach(word => {
+    slug = slug.replace(new RegExp(`-${word}-`, 'g'), '-');
+  });
+
+  return slug.replace(/^-+|-+$/g, ''); // Bindestriche am Anfang/Ende entfernen
 };
 
-// 1. Alle Artikel laden (Admin sieht alle, Public sieht nur veröffentlichte)
+/**
+ * Berechnet die voraussichtliche Lesezeit basierend auf 200 Wörtern pro Minute.
+ */
+const calculateReadingTime = (text) => {
+  const wordsPerMinute = 200;
+  const wordCount = text ? text.split(/\s+/).length : 0;
+  return Math.ceil(wordCount / wordsPerMinute);
+};
+
+// --- CONTROLLER FUNKTIONEN ---
+
+// 1. Alle Artikel laden
 exports.getArticles = async (req, res) => {
   try {
-    // Prüfen ob Admin (wir schauen einfach ob User im Request ist und Rolle hat)
-    // Achtung: Bei Public-Zugriff ist req.user undefined.
+    // Admin-Check: Wenn req.user existiert und Rolle admin ist
     const isAdmin = req.user && req.user.role === 'admin';
-    
+
     let sql = `
       SELECT a.*, u.first_name, u.last_name 
       FROM articles a
       JOIN users u ON a.author_id = u.user_id
     `;
-    
+
     // Wenn NICHT Admin, zeige nur veröffentlichte Artikel
     if (!isAdmin) {
-      sql += ' WHERE a.is_published = TRUE';
+      sql += " WHERE a.status = 'published'";
     }
-    
+
     sql += ' ORDER BY a.created_at DESC';
-    
+
     const [rows] = await pool.query(sql);
     res.json(rows);
   } catch (err) {
@@ -38,7 +60,7 @@ exports.getArticles = async (req, res) => {
   }
 };
 
-// 2. Artikel für Detailseite laden (via Slug für SEO)
+// 2. Artikel via Slug laden (für die Frontend-Detailseite)
 exports.getArticleBySlug = async (req, res) => {
   const { slug } = req.params;
   try {
@@ -49,40 +71,81 @@ exports.getArticleBySlug = async (req, res) => {
       WHERE a.slug = ?
     `, [slug]);
 
-    if (rows.length === 0) return res.status(404).json({ message: "Artikel nicht gefunden" });
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Artikel nicht gefunden" });
+    }
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// 3. Artikel erstellen (Nur Admin)
+// 3. Artikel erstellen (Admin)
 exports.createArticle = async (req, res) => {
-  const { title, excerpt, content, category, image_url, is_published } = req.body;
-  const authorId = req.user.id;
+  const { 
+    title, content, excerpt, teaser, category, image_url, 
+    status, meta_title, meta_description, focus_keyword, 
+    canonical_url, schema_type, show_toc 
+  } = req.body;
   
-  // Automatisch SEO-URL generieren
+  const authorId = req.user.id;
   const slug = createSlug(title);
+  const readingTime = calculateReadingTime(content);
+  
+  // Falls Status 'published', setzen wir das Veröffentlichungsdatum auf jetzt
+  const publishedAt = status === 'published' ? new Date() : null;
 
   try {
-    const [result] = await pool.query(
-      'INSERT INTO articles (author_id, title, slug, excerpt, content, image_url, category, is_published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [authorId, title, slug, excerpt, content, image_url, category, is_published ? 1 : 0]
+    const [result] = await pool.query(`
+      INSERT INTO articles (
+        author_id, title, slug, content, excerpt, teaser, category, image_url, 
+        status, published_at, reading_time_minutes,
+        meta_title, meta_description, focus_keyword, canonical_url, schema_type, show_toc
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        authorId, title, slug, content, excerpt, teaser, category, image_url,
+        status || 'draft', publishedAt, readingTime,
+        meta_title, meta_description, focus_keyword, canonical_url, schema_type, show_toc ? 1 : 0
+      ]
     );
-    res.status(201).json({ message: "Artikel gespeichert", id: result.insertId, slug });
+    
+    res.status(201).json({ 
+      message: "Artikel erfolgreich erstellt", 
+      id: result.insertId, 
+      slug 
+    });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ message: "Ein Artikel mit ähnlichem Titel existiert bereits." });
+      return res.status(400).json({ message: "Ein Artikel mit diesem Titel/Slug existiert bereits." });
     }
     res.status(500).json({ error: err.message });
   }
 };
 
-// 4. Artikel löschen (Nur Admin)
-exports.deleteArticle = async (req, res) => {
+// 4. Artikel updaten (Admin)
+exports.updateArticle = async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  const readingTime = calculateReadingTime(data.content);
+
   try {
-    await pool.query('DELETE FROM articles WHERE article_id = ?', [req.params.id]);
-    res.json({ message: "Artikel gelöscht" });
+    // Hinweis: Den Slug ändern wir beim Update meistens nicht, 
+    // um bestehende Backlinks nicht zu zerstören (SEO Best Practice).
+    await pool.query(`
+      UPDATE articles SET 
+        title=?, teaser=?, content=?, excerpt=?, category=?, image_url=?, 
+        status=?, meta_title=?, meta_description=?, focus_keyword=?, 
+        canonical_url=?, schema_type=?, show_toc=?, reading_time_minutes=?
+      WHERE article_id=?`,
+      [
+        data.title, data.teaser, data.content, data.excerpt, data.category, data.image_url,
+        data.status, data.meta_title, data.meta_description, data.focus_keyword,
+        data.canonical_url, data.schema_type, data.show_toc ? 1 : 0, readingTime,
+        id
+      ]
+    );
+    
+    res.json({ message: "Artikel erfolgreich aktualisiert" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -90,28 +153,24 @@ exports.deleteArticle = async (req, res) => {
 
 // 5. Artikel laden für Editor (nach ID)
 exports.getArticleById = async (req, res) => {
-    try {
-        const [rows] = await pool.query('SELECT * FROM articles WHERE article_id = ?', [req.params.id]);
-        if (rows.length === 0) return res.status(404).json({ message: "Nicht gefunden" });
-        res.json(rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  try {
+    const [rows] = await pool.query('SELECT * FROM articles WHERE article_id = ?', [req.params.id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Artikel nicht gefunden" });
     }
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// 6. Artikel updaten
-exports.updateArticle = async (req, res) => {
-    const { id } = req.params;
-    const { title, excerpt, content, category, image_url, is_published } = req.body;
-    // Slug aktualisieren wir hier NICHT automatisch, um kaputte Links zu vermeiden (SEO Best Practice)
-    
-    try {
-        await pool.query(
-            'UPDATE articles SET title=?, excerpt=?, content=?, image_url=?, category=?, is_published=? WHERE article_id=?',
-            [title, excerpt, content, image_url, category, is_published ? 1 : 0, id]
-        );
-        res.json({ message: "Gespeichert" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// 6. Artikel löschen (Admin)
+exports.deleteArticle = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM articles WHERE article_id = ?', [req.params.id]);
+    res.json({ message: "Artikel erfolgreich gelöscht" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
